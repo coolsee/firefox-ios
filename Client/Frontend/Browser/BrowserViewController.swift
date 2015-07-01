@@ -220,6 +220,30 @@ class BrowserViewController: UIViewController {
         self.updateToolbarStateForTraitCollection(self.traitCollection)
     }
 
+    func loadQueuedTabs() {
+        log.debug("Loading queued tabs.")
+        self.profile.queue.getQueuedTabs() >>== { c in
+            log.debug("Queue. Count: \(c.count).")
+            if c.count > 0 {
+                var urls = [NSURL]()
+                for (let r) in c {
+                    if let url = r?.url.asURL {
+                        log.debug("Queuing \(url).")
+                        urls.append(url)
+                    }
+                }
+                if !urls.isEmpty {
+                    dispatch_async(dispatch_get_main_queue()) {
+                        for (let u) in urls {
+                            self.openURLInNewTab(u)
+                        }
+                    }
+                }
+            }
+            self.profile.queue.clearQueuedTabs()
+        }
+    }
+
     func startTrackingAccessibilityStatus() {
         NSNotificationCenter.defaultCenter().addObserverForName(UIAccessibilityVoiceOverStatusChanged, object: nil, queue: nil) { (notification) -> Void in
             self.auralProgress.hidden = !UIAccessibilityIsVoiceOverRunning()
